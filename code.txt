@@ -1,0 +1,221 @@
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from subprocess import check_output
+%matplotlib inline import plotly.offline as py
+py.init_notebook_mode(connected=True)
+import plotly.graph_objs as go
+import plotly.tools as tls
+import os
+import gc
+import re
+from nltk.corpus import stopwords
+import distance
+from nltk.stem import PorterStemmer
+from bs4 import BeautifulSoup
+df = pd.read_csv("train.csv")
+print("Number of data points:",df.shape[0])
+df.head()
+#BASIC FEATURE EXTRACTION
+#Under EDA we perform certain analysis on features present in dataset and Basic
+#Feature Extraction:
+‘’’• freq_qid1 = Frequency of qid1's
+• freq_qid2 = Frequency of qid2's
+• q1len = Length of q1
+• q2len = Length of q2
+• q1_n_words = Number of words in Question 1
+• q2_n_words = Number of words in Question 2
+• word_Common = (Number of common unique words in Question 1 and
+Question 2)
+• word_Total =(Total num of words in Question 1 + Total num of words in
+Question 2)
+• word_share = (word_common)/(word_Total)
+• freq_q1+freq_q2 = sum total of frequency of qid1 and qid2
+• freq_q1-freq_q2 = absolute difference of frequency of qid1 and qid2
+‘’’
+if os.path.isfile('df_fe_without_preprocessing_train.csv'):
+df = pd.read_csv("df_fe_without_preprocessing_train.csv",encoding='latin-1')
+else:
+df['freq_qid1'] = df.groupby('qid1')['qid1'].transform('count')
+df['freq_qid2'] = df.groupby('qid2')['qid2'].transform('count')
+df['q1len'] = df['question1'].str.len()
+df['q2len'] = df['question2'].str.len()
+df['q1_n_words'] = df['question1'].apply(lambda row: len(row.split(" ")))
+df['q2_n_words'] = df['question2'].apply(lambda row: len(row.split(" ")))
+
+def normalized_word_Common(row):
+w1 = set(map(lambda word: word.lower().strip(), row['question1'].split(" ")))
+w2 = set(map(lambda word: word.lower().strip(), row['question2'].split(" ")))
+return 1.0 * len(w1 & w2)
+df['word_Common'] = df.apply(normalized_word_Common, axis=1)
+
+def normalized_word_Total(row):
+w1 = set(map(lambda word: word.lower().strip(), row['question1'].split(" ")))
+w2 = set(map(lambda word: word.lower().strip(), row['question2'].split(" ")))
+return 1.0 * (len(w1) + len(w2))
+df['word_Total'] = df.apply(normalized_word_Total, axis=1)
+
+def normalized_word_share(row):
+w1 = set(map(lambda word: word.lower().strip(), row['question1'].split(" ")))
+w2 = set(map(lambda word: word.lower().strip(), row['question2'].split(" ")))
+return 1.0 * len(w1 & w2)/(len(w1) + len(w2))
+df['word_share'] = df.apply(normalized_word_share, axis=1)
+
+df['freq_q1+q2'] = df['freq_qid1']+df['freq_qid2']
+df['freq_q1-q2'] = abs(df['freq_qid1']-df['freq_qid2'])
+df.to_csv("df_fe_without_preprocessing_train.csv", index=False)
+
+df.head()
+#5.4 PREPROCESSING OF TEXT
+‘’’Removing html tags
+Removing Punctuations
+Performing stemming
+Removing Stopwords
+Expanding contractions etc.
+‘’’
+STOP_WORDS = stopwords.words("english")
+def preprocess(x):
+x = str(x).lower()
+x = x.replace(",000,000", "m").replace(",000", "k").replace("′", "'").replace("’","'")\.replace("won't", "will not").replace("cannot", "can not").replace("can't ",
+"can not")\.replace("n't", " not").replace("what's", "what is").
+.replace("it's", "it is")\.replace("'ve", " have").replace("i'm", "i am").replace("'re", " are")\
+.replace("he's", "he is").replace("she's", "she is").replace("'s", " own" )\
+.replace("%", " percent ").replace("₹", " rupee ").replace("$", " dollar ")\
+.replace("€", " euro ").replace("'ll", " will")
+x = re.sub(r"([0-9]+)000000", r"\1m", x)
+x = re.sub(r"([0-9]+)000", r"\1k", x)
+porter = PorterStemmer()
+
+
+pattern = re.compile('\W')
+if type(x) == type(''):
+x = re.sub(pattern, ' ', x)
+if type(x) == type(''):
+x = porter.stem(x)
+example1 = BeautifulSoup(x )
+x = example1.get_text()
+return x
+
+#5.5 FEATURIZING TEXT DATA WITH TFIDF WEIGHTED WORD-
+#VECTORS
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import re
+import time
+import warnings
+import numpy as np
+from nltk.corpus import stopwords
+from sklearn.preprocessing import normalize
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+warnings.filterwarnings("ignore")
+import sys
+import os
+
+
+import pandas as pd
+from scipy.sparse import hstack
+import numpy as np
+from tqdm import tqdm
+from tqdm import tqdm_notebook as tqdm1
+# exctract word2vec vectors
+# https://github.com/explosion/spaCy/issues/1721
+# http://landinghub.visualstudio.com/visual-cpp-build-tools
+import spacy
+from sklearn.model_selection import train_test_split
+
+# Filling the null values with ' '
+X_train = X_train.fillna(' ')
+nan_rows1 = X_train[X_train.isnull().any(1)]
+print (nan_rows1)
+
+# Filling the null values with ' '
+X_test = X_test.fillna(' ')
+nan_rows2 = X_test[X_test.isnull().any(1)]
+print (nan_rows2)
+
+
+#5.6 TFIDFW2V VECTORIZATION ON TEST DATA:
+from sklearn.feature_extraction.text import CountVectorizer
+# merge texts
+questions_test = list(X_test['question1_x']) + list(X_test['question2_x'])
+# tfidf_train = TfidfVectorizer(lowercase=False, )
+tfidf_train.transform(questions_test)
+# # dict key:word and value:tf-idf score
+word2tfidf_test = dict(zip(tfidf_train.get_feature_names(), tfidf_train.idf_)
+
+# en_vectors_web_lg, which includes over 1 million unique vectors.
+nlp = spacy.load('en_core_web_sm')
+vecs1 = []
+for qu1 in tqdm1(list(X_test['question1_x'])):
+doc1 = nlp(qu1)
+# 384 is the number of dimensions of vectors
+mean_vec1 = np.zeros([len(doc1), len(doc1[0].vector)])
+for word1 in doc1:
+# word2vec
+vec1 = word1.vector
+# fetch df score
+try:
+idf = word2tfidf_test[str(word1)]
+except:idf = 0
+
+
+# compute final vec
+mean_vec1 += vec1 * idf
+mean_vec1 = mean_vec1.mean(axis=0)
+vecs1.append(mean_vec1)
+X_test['q1_feats_m'] = list(vecs1)
+
+vecs2 = []
+for qu2 in tqdm1(list(X_test['question2_x'])):
+doc2 = nlp(qu2)
+mean_vec2 = np.zeros([len(doc2), len(doc2[0].vector)])
+for word2 in doc2:
+# word2vec
+vec2 = word2.vector
+# fetch df score
+try:
+idf = word2tfidf_test[str(word2)]
+except:
+#print word
+idf = 0
+# compute final vec
+mean_vec2 += vec2 * idf
+mean_vec2 = mean_vec2.mean(axis=0)
+vecs2.append(mean_vec2)
+X_train['q2_feats_m'] = list(vecs2)
+
+#5.7 XGBOOST CLASSIFICATION ALGORITHM
+import xgboost as xgb
+params = {}
+params['objective'] = 'binary:logistic'
+params['eval_metric'] = 'logloss'
+params['eta'] = 0.02
+params['max_depth'] = 4
+d_train = xgb.DMatrix(X_train, label=y_train)
+d_test = xgb.DMatrix(X_test, label=y_test)
+watchlist = [(d_train, 'train'), (d_test, 'valid')]
+bst = xgb.train(params, d_train, 400, watchlist, early_stopping_rounds=20,
+verbose_eval=10)
+xgdmat = xgb.DMatrix(X_train,y_train)
+predict_y = bst.predict(d_test) print("The test log loss is:",log_loss(y_test, predict_y,
+labels=clf.classes_, eps=1e-15))
+
+#5.8 MODEL WITH ITS TEST LOG LOSS
+from prettytable import PrettyTable
+x = PrettyTable()
+x.field_names = ["Vectorizer", "Model", "Test log loss"]
+x.add_row(["TFIDF", "Random Model", 0.88])
+x.add_row(["TFIDF", "Logistic Regression", 0.42])
+x.add_row(["TFIDF", "Linear SVM", 0.45])
+x.add_row(["TFIDF", "XGBoost", 0.33])
+print(x)
+
+#5.9 CONFUSION MATRIX
+predicted_y =np.array(predict_y>0.5,dtype=int)
+print("Total number of data points :", len(predicted_y))
+plot_confusion_matrix(y_test, predicted_y)
+
+
